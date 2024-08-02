@@ -1,0 +1,205 @@
+import SwiftUI
+
+struct ContentView: View {
+    @StateObject private var authViewModel = AuthViewModel()
+    @StateObject private var taskViewModel = TaskViewModel()
+    @StateObject private var preferenceViewModel = PreferenceViewModel()
+    
+    var body: some View {
+        if authViewModel.isAuthenticated {
+            TabView {
+                TaskListView()
+                    .tabItem {
+                        Label("Tasks", systemImage: "list.bullet")
+                    }
+                PreferencesView()
+                    .tabItem {
+                        Label("Preferences", systemImage: "gear")
+                    }
+            }
+            .environmentObject(authViewModel)
+            .environmentObject(taskViewModel)
+            .environmentObject(preferenceViewModel)
+        } else {
+            LoginView()
+                .environmentObject(authViewModel)
+        }
+    }
+}
+
+struct LoginView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @State private var username = ""
+    @State private var password = ""
+    
+    var body: some View {
+        VStack {
+            TextField("Username", text: $username)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+            SecureField("Password", text: $password)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+            Button("Login") {
+                authViewModel.login(username: username, password: password)
+            }
+            .buttonStyle(.borderedProminent)
+            if authViewModel.error != nil {
+                Text(authViewModel.error!)
+                    .foregroundColor(.red)
+            }
+        }
+        .padding()
+    }
+}
+
+struct TaskListView: View {
+    @EnvironmentObject var taskViewModel: TaskViewModel
+    @State private var newTaskDescription = ""
+    
+    var body: some View {
+        NavigationView {
+            List {
+                ForEach(taskViewModel.tasks) { task in
+                    TaskRow(task: task)
+                }
+                .onDelete(perform: deleteTask)
+            }
+            .navigationTitle("Tasks")
+            .toolbar {
+                ToolbarItem(placement: .bottomBar) {
+                    HStack {
+                        TextField("New task", text: $newTaskDescription)
+                        Button("Add") {
+                            taskViewModel.addTask(description: newTaskDescription)
+                            newTaskDescription = ""
+                        }
+                        .disabled(newTaskDescription.isEmpty)
+                    }
+                }
+            }
+        }
+        .onAppear {
+            taskViewModel.fetchTasks()
+        }
+    }
+    
+    func deleteTask(at offsets: IndexSet) {
+        offsets.forEach { index in
+            let task = taskViewModel.tasks[index]
+            taskViewModel.deleteTask(task)
+        }
+    }
+}
+
+struct TaskRow: View {
+    @EnvironmentObject var taskViewModel: TaskViewModel
+    let task: Task
+    
+    var body: some View {
+        HStack {
+            Text(task.description)
+            Spacer()
+            Button(action: {
+                taskViewModel.toggleTaskCompletion(task)
+            }) {
+                Image(systemName: task.completed ? "checkmark.circle.fill" : "circle")
+            }
+        }
+    }
+}
+
+struct PreferencesView: View {
+    @EnvironmentObject var preferenceViewModel: PreferenceViewModel
+    @State private var newKey = ""
+    @State private var newValue = ""
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                ForEach(preferenceViewModel.preferences.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
+                    HStack {
+                        Text(key)
+                        Spacer()
+                        Text(value)
+                    }
+                }
+                Section(header: Text("Add New Preference")) {
+                    TextField("Key", text: $newKey)
+                    TextField("Value", text: $newValue)
+                    Button("Add") {
+                        preferenceViewModel.setPreference(key: newKey, value: newValue)
+                        newKey = ""
+                        newValue = ""
+                    }
+                    .disabled(newKey.isEmpty || newValue.isEmpty)
+                }
+            }
+            .navigationTitle("Preferences")
+        }
+        .onAppear {
+            preferenceViewModel.fetchPreferences()
+        }
+    }
+}
+
+class AuthViewModel: ObservableObject {
+    @Published var isAuthenticated = false
+    @Published var error: String?
+    private var token: String?
+    
+    func login(username: String, password: String) {
+        // Implement API call to login
+        // On success, set isAuthenticated to true and store the token
+    }
+    
+    func logout() {
+        isAuthenticated = false
+        token = nil
+    }
+}
+
+struct Task: Identifiable {
+    let id: Int
+    var description: String
+    var completed: Bool
+}
+
+class TaskViewModel: ObservableObject {
+    @Published var tasks: [Task] = []
+    
+    func fetchTasks() {
+        // Implement API call to fetch tasks
+    }
+    
+    func addTask(description: String) {
+        // Implement API call to add a task
+    }
+    
+    func toggleTaskCompletion(_ task: Task) {
+        // Implement API call to update task completion status
+    }
+    
+    func deleteTask(_ task: Task) {
+        // Implement API call to delete a task
+    }
+}
+
+class PreferenceViewModel: ObservableObject {
+    @Published var preferences: [String: String] = [:]
+    
+    func fetchPreferences() {
+        // Implement API call to fetch preferences
+    }
+    
+    func setPreference(key: String, value: String) {
+        // Implement API call to set a preference
+    }
+}
+
+@main
+struct DigitalAgentApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}
